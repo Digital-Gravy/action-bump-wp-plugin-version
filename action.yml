@@ -1,0 +1,38 @@
+# action.yml
+name: "WordPress Plugin Version Bump Action"
+description: "Bumps version numbers in WordPress plugin files according to semantic versioning rules"
+inputs:
+  plugin_file_path:
+    description: "Path to the WordPress plugin file"
+    required: true
+  version_line_pattern:
+    description: "Grep pattern to find the version line (defaults to WordPress plugin header format)"
+    required: false
+    default: "Version:"
+  release_type:
+    description: "Release type (Stable/Alpha/Beta/RC)"
+    required: true
+    default: "Stable"
+  version_bump:
+    description: "Version bump type (Major/Minor/Patch/Build/No version bump)"
+    required: true
+    default: "Patch"
+outputs:
+  new_version:
+    description: "The new version number"
+  current_version:
+    description: "The current version number before bumping"
+  version_bumped:
+    description: "Boolean indicating whether the version was actually changed"
+runs:
+  using: "composite"
+  steps:
+    - name: Bump version
+      id: bump_version
+      shell: bash
+      run: ${{ github.action_path }}/bump_version.sh
+      env:
+        INPUT_PLUGIN_FILE_PATH: ${{ inputs.plugin_file_path }}
+        INPUT_VERSION_LINE_PATTERN: ${{ inputs.version_line_pattern }}
+        INPUT_RELEASE_TYPE: ${{ inputs.release_type }}
+        INPUT_VERSION_BUMP: ${{ inputs.version_bump }}
