@@ -5,10 +5,6 @@ inputs:
   plugin_file_path:
     description: "Path to the WordPress plugin file"
     required: true
-  version_line_pattern:
-    description: "Grep pattern to find the version line (defaults to WordPress plugin header format)"
-    required: false
-    default: "Version:"
   release_type:
     description: "Release type (Stable/Alpha/Beta/RC)"
     required: true
@@ -33,6 +29,5 @@ runs:
       run: ${{ github.action_path }}/bump_version.sh
       env:
         INPUT_PLUGIN_FILE_PATH: ${{ inputs.plugin_file_path }}
-        INPUT_VERSION_LINE_PATTERN: ${{ inputs.version_line_pattern }}
         INPUT_RELEASE_TYPE: ${{ inputs.release_type }}
         INPUT_VERSION_BUMP: ${{ inputs.version_bump }}

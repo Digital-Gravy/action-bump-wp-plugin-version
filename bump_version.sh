@@ -2,7 +2,7 @@
 # bump_version.sh
 
 # Get current version from plugin file
-version_line=$(grep -e "${INPUT_VERSION_LINE_PATTERN}" "${INPUT_PLUGIN_FILE_PATH}")
+version_line=$(grep -e 'Version:' "${INPUT_PLUGIN_FILE_PATH}")
 current_version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+(-(?:alpha|beta|rc)-\d+)?(?:\+[0-9]+)?')
 echo "Current version: $current_version"
 
@@ -81,9 +81,9 @@ echo "new_version=$new_version" >> $GITHUB_OUTPUT
 echo "current_version=$current_version" >> $GITHUB_OUTPUT
 
 if [ "$new_version" != "$current_version" ]; then
-  sed -i "s/^\(\s*\* ${INPUT_VERSION_LINE_PATTERN}\s*\)[^ ].*$/\1$new_version/" "${INPUT_PLUGIN_FILE_PATH}"
+  sed -i "s/^\(\s*\* Version:\s*\)[^ ].*$/\1$new_version/" "${INPUT_PLUGIN_FILE_PATH}"
   echo "Version in ${INPUT_PLUGIN_FILE_PATH} after update:"
-  grep -e "${INPUT_VERSION_LINE_PATTERN}" "${INPUT_PLUGIN_FILE_PATH}"
+  grep -e 'Version:' "${INPUT_PLUGIN_FILE_PATH}"
   echo "version_bumped=true" >> $GITHUB_OUTPUT
 else
   echo "No version changes needed."
