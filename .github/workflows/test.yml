@@ -29,9 +29,13 @@ jobs:
         run: |
           version_line=$(grep -e 'Version:' tmp/patch-test.php)
           version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+')
-          echo "Found version: $version"
-          [[ "$version" == "1.2.4" ]] || exit 1
-          [[ "${{ steps.patch_release.outputs.version_bumped }}" == "true" ]] || exit 1
+          echo "Found version: '$version'"
+          echo "Version bumped output: '${{ steps.patch_release.outputs.version_bumped }}'"
+          # Print version with special characters visible
+          echo "Version (with special chars):"
+          echo "$version" | cat -A
+          [[ "$version" == "1.2.4" ]] || { echo "Version match failed"; exit 1; }
+          [[ "${{ steps.patch_release.outputs.version_bumped }}" == "true" ]] || { echo "Version bumped check failed"; exit 1; }
 
       # Test minor release (1.2.3 -> 1.3.0)
       - name: Prepare test file for minor release
