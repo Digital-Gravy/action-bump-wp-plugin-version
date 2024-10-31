@@ -25,55 +25,52 @@ release_type=$(echo "${INPUT_RELEASE_TYPE}" | tr '[:upper:]' '[:lower:]')
 # Generate timestamp for build releases
 timestamp=$(date '+%Y%m%d%H%M%S')-${GITHUB_RUN_NUMBER:-0}
 
-# Initialize new version with current base version
-new_version="${major}.${minor}.${patch}"
+# Calculate new version based on version bump type first
+case "${INPUT_VERSION_BUMP}" in
+  "No version bump")
+    new_base_version="${major}.${minor}.${patch}"
+    ;;
+  Build)
+    new_base_version="${major}.${minor}.${patch}"
+    ;;
+  Patch)
+    new_base_version="$major.$minor.$((patch + 1))"
+    ;;
+  Minor)
+    new_base_version="$major.$((minor + 1)).0"
+    ;;
+  Major)
+    new_base_version="$((major + 1)).0.0"
+    ;;
+  *)
+    new_base_version="${major}.${minor}.${patch}"
+    ;;
+esac
 
-# Handle prerelease type changes and version bumps
+# Handle prerelease type changes
 if [[ "${INPUT_RELEASE_TYPE}" != "Stable" ]]; then
   if [[ -n "$current_prerelease_type" ]]; then
     # Currently on a prerelease version
     if [[ "${release_type}" == "${current_prerelease_type}" ]]; then
       # Same prerelease type - just bump the prerelease number
       new_prerelease_num=$((current_prerelease_num + 1))
-      new_version="${major}.${minor}.${patch}-${release_type}-${new_prerelease_num}"
+      new_version="${new_base_version}-${release_type}-${new_prerelease_num}"
     else
       # Different prerelease type - switch type and reset to 1
-      new_version="${major}.${minor}.${patch}-${release_type}-1"
+      new_version="${new_base_version}-${release_type}-1"
     fi
   else
     # Not currently on a prerelease - add prerelease info
-    new_version="${major}.${minor}.${patch}-${release_type}-1"
+    new_version="${new_base_version}-${release_type}-1"
   fi
 else
-  # Stable release - handle version bumps if requested
-  case "${INPUT_VERSION_BUMP}" in
-    "No version bump")
-      # Keep current version
-      ;;
-    Build)
-      new_version="${new_version}+${timestamp}"
-      ;;
-    Patch)
-      new_version="$major.$minor.$((patch + 1))"
-      ;;
-    Minor)
-      new_version="$major.$((minor + 1)).0"
-      ;;
-    Major)
-      new_version="$((major + 1)).0.0"
-      ;;
-  esac
+  # Stable release
+  new_version="${new_base_version}"
 fi
 
-# Handle build numbers for non-stable releases
+# Handle build numbers
 if [[ "${INPUT_VERSION_BUMP}" == "Build" ]]; then
-  if [[ "$new_version" =~ -([a-z]+)-([0-9]+)$ ]]; then
-    # Add build number to prerelease version
-    new_version="${new_version}+${timestamp}"
-  else
-    # Add build number to stable version
-    new_version="${new_version}+${timestamp}"
-  fi
+  new_version="${new_version}+${timestamp}"
 fi
 
 echo "New version: $new_version"
