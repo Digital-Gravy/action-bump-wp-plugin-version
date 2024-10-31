@@ -65,7 +65,7 @@ jobs:
 
       - name: Verify patch release and version_bumped true
         run: |
-          version=$(grep -oP '(?<=Version: )\d+\.\d+\.\d+' test/plugin.php)
+          version=$(grep -e 'Version:' test/plugin.php | grep -oP '\d+\.\d+\.\d+')
           echo "Found version: $version"
           [[ "$version" == "1.2.4" ]] || exit 1
           [[ "${{ steps.patch_release.outputs.version_bumped }}" == "true" ]] || exit 1
