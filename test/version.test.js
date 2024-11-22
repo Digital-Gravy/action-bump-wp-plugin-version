@@ -28,7 +28,7 @@ describe('Version Bumper', () => {
         major: 1,
         minor: 2,
         patch: 3,
-        prerelease: null,
+        prereleaseType: null,
         prereleaseNum: null,
         build: null,
       });
@@ -39,7 +39,7 @@ describe('Version Bumper', () => {
         major: 1,
         minor: 2,
         patch: 3,
-        prerelease: 'alpha',
+        prereleaseType: 'alpha',
         prereleaseNum: 1,
         build: null,
       });
@@ -50,7 +50,7 @@ describe('Version Bumper', () => {
         major: 1,
         minor: 2,
         patch: 3,
-        prerelease: null,
+        prereleaseType: null,
         prereleaseNum: null,
         build: '20240101120000',
       });
@@ -61,7 +61,7 @@ describe('Version Bumper', () => {
         major: 1,
         minor: 2,
         patch: 3,
-        prerelease: 'alpha',
+        prereleaseType: 'alpha',
         prereleaseNum: 1,
         build: '20240101120000',
       });
