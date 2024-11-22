@@ -1,5 +1,7 @@
 # WordPress Plugin Version Bumper
 
+[![Tests](https://github.com/Digital-Gravy/action-bump-wp-plugin-version/actions/workflows/test.yml/badge.svg)](https://github.com/Digital-Gravy/action-bump-wp-plugin-version/actions/workflows/test.yml)
+
 A GitHub Action to automatically bump version numbers in WordPress plugin files. Supports semantic versioning with additional support for prerelease versions (dev/alpha/beta/rc) and build numbers.
 
 ## Version Format
