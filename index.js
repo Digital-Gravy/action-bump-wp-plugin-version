@@ -277,16 +277,14 @@ function run() {
     }
 
     // Output results with visual separation
-    core.info('╔════════════════════════════════════════');
-    core.info('║ WordPress Plugin Version Bumper Results');
-    core.info('╠════════════════════════════════════════');
-    core.info(`║ Old Version: ${oldVersion}`);
-    core.info(`║ New Version: ${newVersion}`);
-    core.info(`║ Version Bumped: ${isVersionBumped}`);
+    core.info('WordPress Plugin Version Bumper Results');
+    core.info('═══════════════════════════════════════');
+    core.info(`Old Version: ${oldVersion}`);
+    core.info(`New Version: ${newVersion}`);
+    core.info(`Version Bumped: ${isVersionBumped}`);
     if (isVersionBumped) {
-      core.info(`║ File Updated: ${filePath}`);
+      core.info(`File Updated: ${filePath}`);
     }
-    core.info('╚════════════════════════════════════════');
 
     core.setOutput('old_version', oldVersion);
     core.setOutput('new_version', newVersion);
