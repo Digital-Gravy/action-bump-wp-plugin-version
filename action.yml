@@ -1,33 +1,28 @@
-# action.yml
-name: "WordPress Plugin Version Bump Action"
-description: "Bumps version numbers in WordPress plugin files according to semantic versioning rules"
+name: 'WordPress Plugin Version Bumper'
+description: 'Bumps version numbers for WordPress plugins following semantic versioning with prerelease support'
 inputs:
-  plugin_file_path:
-    description: "Path to the WordPress plugin file"
+  bump_type:
+    description: 'Type of version bump to perform (none/major/minor/patch/build)'
     required: true
-  release_type:
-    description: "Release type (Stable/Alpha/Beta/RC)"
+    default: 'patch'
+  prerelease_type:
+    description: 'Type of prerelease (none/dev/alpha/beta/rc)'
     required: true
-    default: "Stable"
-  version_bump:
-    description: "Version bump type (Major/Minor/Patch/Build/No version bump)"
+    default: 'none'
+  plugin_dir:
+    description: 'Directory containing the WordPress plugin'
     required: true
-    default: "Patch"
+  main_file:
+    description: 'Name of the main plugin file'
+    required: true
 outputs:
   new_version:
-    description: "The new version number"
-  current_version:
-    description: "The current version number before bumping"
-  version_bumped:
-    description: "Boolean indicating whether the version was actually changed"
+    description: 'The new version number'
+  old_version:
+    description: 'The previous version number'
+  is_version_bumped:
+    description: 'Whether the version was bumped'
+
 runs:
-  using: "composite"
-  steps:
-    - name: Bump version
-      id: bump_version
-      shell: bash
-      run: ${{ github.action_path }}/bump_version.sh
-      env:
-        INPUT_PLUGIN_FILE_PATH: ${{ inputs.plugin_file_path }}
-        INPUT_RELEASE_TYPE: ${{ inputs.release_type }}
-        INPUT_VERSION_BUMP: ${{ inputs.version_bump }}
+  using: 'node20'
+  main: 'index.js'
