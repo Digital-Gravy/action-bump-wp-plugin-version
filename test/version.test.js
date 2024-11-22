@@ -20,6 +20,11 @@ describe('Version Bumper', () => {
     // Reset all mocks before each test
     jest.clearAllMocks();
     path.join.mockImplementation((...parts) => parts.join('/'));
+
+    // Setup default fs mocks
+    fs.statSync.mockReturnValue({
+      isFile: () => true,
+    });
   });
 
   describe('parseVersion', () => {
@@ -93,6 +98,29 @@ describe('Version Bumper', () => {
   });
 
   describe('Version Bumping', () => {
+    beforeEach(() => {
+      // Mock Date for consistent timestamps in tests
+      const mockDate = new Date('2024-01-01T12:00:00Z');
+      global.Date = class extends Date {
+        constructor() {
+          return mockDate;
+        }
+      };
+
+      // Reset all mocks before each test
+      jest.clearAllMocks();
+
+      // Proper path.join mock that maintains the full path
+      path.join.mockImplementation((...parts) => {
+        return parts.join('/');
+      });
+
+      // Setup default fs mocks
+      fs.statSync.mockReturnValue({
+        isFile: () => true,
+      });
+    });
+
     it('should bump patch version', () => {
       expect(bumpVersion('1.2.3', 'patch', 'none')).toBe('1.2.4');
     });
@@ -182,14 +210,24 @@ describe('Version Bumper', () => {
     });
 
     it('should throw error when file does not exist', () => {
-      fs.readFileSync.mockImplementation(() => {
+      fs.statSync.mockImplementation(() => {
         const error = new Error('File not found');
         error.code = 'ENOENT';
         throw error;
       });
 
       expect(() => getCurrentVersion('plugin-dir', 'plugin.php')).toThrow(
-        'Plugin file not found at: plugin-dir/plugin.php'
+        'Plugin file not found: plugin-dir/plugin.php'
+      );
+    });
+
+    it('should throw error when path is a directory', () => {
+      fs.statSync.mockReturnValue({
+        isFile: () => false,
+      });
+
+      expect(() => getCurrentVersion('plugin-dir', 'plugin.php')).toThrow(
+        'Not a file: plugin-dir/plugin.php'
       );
     });
 
@@ -229,6 +267,9 @@ describe('Version Bumper', () => {
     });
 
     it('should handle other file read errors', () => {
+      fs.statSync.mockReturnValue({
+        isFile: () => true,
+      });
       fs.readFileSync.mockImplementation(() => {
         throw new Error('Permission denied');
       });
