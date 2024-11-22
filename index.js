@@ -178,15 +178,37 @@ function run() {
     const bumpType = core.getInput('bump_type');
     const prereleaseType = core.getInput('prerelease_type');
     const pluginDir = core.getInput('plugin_dir');
-    const pluginMainFile = core.getInput('plugin_main_file');
+    const mainFile = core.getInput('main_file');
 
-    const oldVersion = getCurrentVersion(pluginDir, pluginMainFile);
+    // Debug input values
+    core.debug('Inputs received:');
+    core.debug(`  bump_type: ${bumpType}`);
+    core.debug(`  prerelease_type: ${prereleaseType}`);
+    core.debug(`  plugin_dir: ${pluginDir}`);
+    core.debug(`  main_file: ${mainFile}`);
+
+    const oldVersion = getCurrentVersion(pluginDir, mainFile);
     const newVersion = bumpVersion(oldVersion, bumpType, prereleaseType);
     const isVersionBumped = oldVersion !== newVersion;
+
+    // Output results with visual separation
+    core.info('╔════════════════════════════════════════');
+    core.info('║ WordPress Plugin Version Bumper Results');
+    core.info('╠════════════════════════════════════════');
+    core.info(`║ Old Version: ${oldVersion}`);
+    core.info(`║ New Version: ${newVersion}`);
+    core.info(`║ Version Bumped: ${isVersionBumped}`);
+    core.info('╚════════════════════════════════════════');
 
     core.setOutput('old_version', oldVersion);
     core.setOutput('new_version', newVersion);
     core.setOutput('is_version_bumped', isVersionBumped);
+
+    if (isVersionBumped) {
+      core.notice(`Version bumped from ${oldVersion} to ${newVersion}`);
+    } else {
+      core.notice('No version change needed');
+    }
   } catch (error) {
     core.setFailed(error.message);
   }
