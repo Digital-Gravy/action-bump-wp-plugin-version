@@ -3,13 +3,14 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Get the current version from the plugin file
+ * Resolve and validate the plugin file path
  *
  * @param {string} pluginDir The directory where the plugin file is located
  * @param {string} pluginMainFile The main plugin file
- * @returns {string} The current version
+ * @returns {string} The resolved file path
+ * @throws {Error} If the path is invalid or file doesn't exist
  */
-function getCurrentVersion(pluginDir, pluginMainFile) {
+function resolvePluginFile(pluginDir, pluginMainFile) {
   if (!pluginDir || !pluginMainFile) {
     throw new Error('Plugin directory and main file name are required');
   }
@@ -21,7 +22,26 @@ function getCurrentVersion(pluginDir, pluginMainFile) {
     if (!stats.isFile()) {
       throw new Error(`Not a file: ${filePath}`);
     }
+    return filePath;
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error(`Plugin file not found: ${filePath}`);
+    }
+    throw error;
+  }
+}
 
+/**
+ * Get the current version from the plugin file
+ *
+ * @param {string} pluginDir The directory where the plugin file is located
+ * @param {string} pluginMainFile The main plugin file
+ * @returns {string} The current version
+ */
+function getCurrentVersion(pluginDir, pluginMainFile) {
+  const filePath = resolvePluginFile(pluginDir, pluginMainFile);
+
+  try {
     const content = fs.readFileSync(filePath, 'utf8');
     const versionMatch = content.match(/Version:\s*([^*\n\r]*)/);
 
@@ -180,6 +200,56 @@ function formatVersion(version) {
 }
 
 /**
+ * Update the plugin version in the file
+ *
+ * @param {string} pluginDir The directory where the plugin file is located
+ * @param {string} pluginMainFile The main plugin file
+ * @param {string} oldVersion Current version to replace
+ * @param {string} newVersion New version to set
+ */
+function updatePluginVersion(pluginDir, pluginMainFile, oldVersion, newVersion) {
+  const filePath = resolvePluginFile(pluginDir, pluginMainFile);
+
+  try {
+    let content = fs.readFileSync(filePath, 'utf8');
+
+    // Find the Version line with exact whitespace capture
+    const versionRegex = /(Version:[ ]*)(.*?)([ ]*(?=\*|$|\r?\n))/;
+    const versionLine = content.split('\n').find((line) => line.includes('Version:'));
+
+    if (!versionLine) {
+      throw new Error('Version header not found in plugin file');
+    }
+
+    const versionMatch = versionLine.match(versionRegex);
+    if (!versionMatch) {
+      throw new Error('Invalid version line format');
+    }
+
+    // Replace version while preserving all whitespace
+    const [, prefix, , suffix] = versionMatch;
+    const newLine = versionLine.replace(versionRegex, `${prefix}${newVersion}${suffix}`);
+
+    // Replace the entire line in the content
+    content = content.replace(versionLine, newLine);
+
+    try {
+      fs.writeFileSync(filePath, content, 'utf8');
+    } catch (writeError) {
+      throw new Error(`Failed to update plugin file: ${writeError.message}`);
+    }
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error(`Plugin file not found: ${filePath}`);
+    }
+    if (!error.message.startsWith('Failed to update plugin file:')) {
+      throw new Error(`Failed to update plugin file: ${error.message}`);
+    }
+    throw error;
+  }
+}
+
+/**
  * Run the action
  */
 function run() {
@@ -196,9 +266,15 @@ function run() {
     core.debug(`  plugin_dir: ${pluginDir}`);
     core.debug(`  plugin_main_file: ${pluginMainFile}`);
 
+    // Validate plugin file exists before proceeding
+    const filePath = resolvePluginFile(pluginDir, pluginMainFile);
     const oldVersion = getCurrentVersion(pluginDir, pluginMainFile);
     const newVersion = bumpVersion(oldVersion, bumpType, prereleaseType);
     const isVersionBumped = oldVersion !== newVersion;
+
+    if (isVersionBumped) {
+      updatePluginVersion(pluginDir, pluginMainFile, oldVersion, newVersion);
+    }
 
     // Output results with visual separation
     core.info('╔════════════════════════════════════════');
@@ -207,6 +283,9 @@ function run() {
     core.info(`║ Old Version: ${oldVersion}`);
     core.info(`║ New Version: ${newVersion}`);
     core.info(`║ Version Bumped: ${isVersionBumped}`);
+    if (isVersionBumped) {
+      core.info(`║ File Updated: ${filePath}`);
+    }
     core.info('╚════════════════════════════════════════');
 
     core.setOutput('old_version', oldVersion);
@@ -227,6 +306,8 @@ module.exports = {
   bumpVersion,
   getCurrentVersion,
   parseVersion,
+  resolvePluginFile,
+  updatePluginVersion,
 };
 
 if (require.main === module) {

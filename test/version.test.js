@@ -1,4 +1,10 @@
-const { bumpVersion, parseVersion, getCurrentVersion } = require('../index');
+const {
+  bumpVersion,
+  parseVersion,
+  getCurrentVersion,
+  resolvePluginFile,
+  updatePluginVersion,
+} = require('../index');
 const fs = require('fs');
 const path = require('path');
 
@@ -339,6 +345,166 @@ describe('Version Bumper', () => {
          */`);
 
       expect(getCurrentVersion('plugin-dir', 'plugin.php')).toBe('1.2.3');
+    });
+  });
+
+  describe('resolvePluginFile', () => {
+    beforeEach(() => {
+      fs.statSync.mockReturnValue({
+        isFile: () => true,
+      });
+    });
+
+    it('should resolve valid plugin file path', () => {
+      const filePath = resolvePluginFile('plugin-dir', 'plugin.php');
+      expect(filePath).toBe('plugin-dir/plugin.php');
+    });
+
+    it('should throw error when plugin directory is missing', () => {
+      expect(() => resolvePluginFile(null, 'plugin.php')).toThrow(
+        'Plugin directory and main file name are required'
+      );
+    });
+
+    it('should throw error when plugin file is missing', () => {
+      expect(() => resolvePluginFile('plugin-dir', null)).toThrow(
+        'Plugin directory and main file name are required'
+      );
+    });
+
+    it('should throw error when path is a directory', () => {
+      fs.statSync.mockReturnValue({
+        isFile: () => false,
+      });
+
+      expect(() => resolvePluginFile('plugin-dir', 'plugin.php')).toThrow(
+        'Not a file: plugin-dir/plugin.php'
+      );
+    });
+
+    it('should throw error when file does not exist', () => {
+      fs.statSync.mockImplementation(() => {
+        const error = new Error('File not found');
+        error.code = 'ENOENT';
+        throw error;
+      });
+
+      expect(() => resolvePluginFile('plugin-dir', 'plugin.php')).toThrow(
+        'Plugin file not found: plugin-dir/plugin.php'
+      );
+    });
+
+    it('should propagate other file system errors', () => {
+      fs.statSync.mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      expect(() => resolvePluginFile('plugin-dir', 'plugin.php')).toThrow('Permission denied');
+    });
+  });
+
+  describe('updatePluginVersion', () => {
+    let fileContent;
+
+    beforeEach(() => {
+      fileContent = `<?php
+      /**
+       * Plugin Name: Test Plugin
+       * Version: 1.2.3
+       */`;
+
+      fs.readFileSync.mockImplementation(() => fileContent);
+      fs.writeFileSync.mockImplementation((path, content) => {
+        fileContent = content;
+      });
+      fs.statSync.mockReturnValue({
+        isFile: () => true,
+      });
+    });
+
+    it('should update version in file', () => {
+      updatePluginVersion('plugin-dir', 'plugin.php', '1.2.3', '1.2.4');
+
+      expect(fileContent).toMatch(/Version: 1\.2\.4/);
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        'plugin-dir/plugin.php',
+        expect.any(String),
+        'utf8'
+      );
+    });
+
+    it('should preserve whitespace when updating version', () => {
+      // Set input with exact whitespace we want to preserve
+      fileContent = `<?php
+        /**
+         * Plugin Name: Test Plugin
+         * Version:    1.2.3
+         */`;
+
+      updatePluginVersion('plugin-dir', 'plugin.php', '1.2.3', '1.2.4');
+
+      // Check the exact content after update
+      expect(fileContent).toBe(`<?php
+        /**
+         * Plugin Name: Test Plugin
+         * Version:    1.2.4
+         */`);
+    });
+
+    it('should handle version with prerelease', () => {
+      updatePluginVersion('plugin-dir', 'plugin.php', '1.2.3', '1.2.3-beta-1');
+
+      expect(fileContent).toMatch(/Version: 1\.2\.3-beta-1/);
+    });
+
+    it('should handle version with build number', () => {
+      updatePluginVersion('plugin-dir', 'plugin.php', '1.2.3', '1.2.3+20240101120000');
+
+      expect(fileContent).toMatch(/Version: 1\.2\.3\+20240101120000/);
+    });
+
+    it('should throw error when file is not found', () => {
+      fs.statSync.mockImplementation(() => {
+        const error = new Error('File not found');
+        error.code = 'ENOENT';
+        throw error;
+      });
+
+      expect(() => updatePluginVersion('plugin-dir', 'missing.php', '1.2.3', '1.2.4')).toThrow(
+        'Plugin file not found: plugin-dir/missing.php'
+      );
+    });
+
+    it('should throw error on file write failure', () => {
+      fs.writeFileSync.mockImplementation(() => {
+        throw new Error('Write permission denied');
+      });
+
+      expect(() => updatePluginVersion('plugin-dir', 'plugin.php', '1.2.3', '1.2.4')).toThrow(
+        'Failed to update plugin file: Write permission denied'
+      );
+    });
+
+    it('should throw error on file read failure', () => {
+      fs.readFileSync.mockImplementation(() => {
+        throw new Error('Read permission denied');
+      });
+
+      expect(() => updatePluginVersion('plugin-dir', 'plugin.php', '1.2.3', '1.2.4')).toThrow(
+        'Failed to update plugin file: Read permission denied'
+      );
+    });
+
+    it('should handle special characters in version strings', () => {
+      fileContent = `<?php
+        /**
+         * Plugin Name: Test Plugin
+         * Version: 1.2.3+20240101120000
+         */`;
+
+      updatePluginVersion('plugin-dir', 'plugin.php', '1.2.3+20240101120000', '1.2.4');
+
+      expect(fileContent).toMatch(/Version: 1\.2\.4/);
     });
   });
 });
