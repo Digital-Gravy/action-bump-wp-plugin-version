@@ -51,8 +51,16 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Install all dependencies
+        run: npm ci
+
+      - name: Build action
+        run: npm run build
+
       - name: Install production dependencies
-        run: npm ci --only=production
+        run: |
+          npm ci --only=production
+          rm -rf node_modules/@vercel/ncc
 
       - name: Test major bump
         uses: ./
