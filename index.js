@@ -187,14 +187,14 @@ function run() {
     const bumpType = core.getInput('bump_type');
     const prereleaseType = core.getInput('prerelease_type');
     const pluginDir = core.getInput('plugin_dir');
-    const pluginMainFile = core.getInput('main_file');
+    const pluginMainFile = core.getInput('plugin_main_file');
 
     // Debug input values
     core.debug('Inputs received:');
     core.debug(`  bump_type: ${bumpType}`);
     core.debug(`  prerelease_type: ${prereleaseType}`);
     core.debug(`  plugin_dir: ${pluginDir}`);
-    core.debug(`  main_file: ${pluginMainFile}`);
+    core.debug(`  plugin_main_file: ${pluginMainFile}`);
 
     const oldVersion = getCurrentVersion(pluginDir, pluginMainFile);
     const newVersion = bumpVersion(oldVersion, bumpType, prereleaseType);
