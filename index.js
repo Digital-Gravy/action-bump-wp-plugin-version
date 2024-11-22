@@ -2,8 +2,8 @@ const core = require('@actions/core');
 const fs = require('fs');
 const path = require('path');
 
-function getCurrentVersion(pluginDir, mainFile) {
-  const filePath = path.join(pluginDir, mainFile);
+function getCurrentVersion(pluginDir, pluginMainFile) {
+  const filePath = path.join(pluginDir, pluginMainFile);
 
   try {
     const content = fs.readFileSync(filePath, 'utf8');
@@ -128,9 +128,9 @@ function run() {
     const bumpType = core.getInput('bump_type');
     const prereleaseType = core.getInput('prerelease_type');
     const pluginDir = core.getInput('plugin_dir');
-    const mainFile = core.getInput('main_file');
+    const pluginMainFile = core.getInput('plugin_main_file');
 
-    const oldVersion = getCurrentVersion(pluginDir, mainFile);
+    const oldVersion = getCurrentVersion(pluginDir, pluginMainFile);
     const newVersion = bumpVersion(oldVersion, bumpType, prereleaseType);
     const isVersionBumped = oldVersion !== newVersion;
 

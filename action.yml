@@ -12,7 +12,7 @@ inputs:
   plugin_dir:
     description: 'Directory containing the WordPress plugin'
     required: true
-  main_file:
+  plugin_main_file:
     description: 'Name of the main plugin file'
     required: true
 outputs:

@@ -60,7 +60,7 @@ jobs:
           bump_type: 'major'
           prerelease_type: 'none'
           plugin_dir: 'test/fixtures'
-          main_file: 'test-plugin.php'
+          plugin_main_file: 'test-plugin.php'
 
       - name: Test patch with beta
         uses: ./
@@ -68,7 +68,7 @@ jobs:
           bump_type: 'patch'
           prerelease_type: 'beta'
           plugin_dir: 'test/fixtures'
-          main_file: 'test-plugin.php'
+          plugin_main_file: 'test-plugin.php'
 
       - name: Test build number
         uses: ./
@@ -76,4 +76,4 @@ jobs:
           bump_type: 'build'
           prerelease_type: 'none'
           plugin_dir: 'test/fixtures'
-          main_file: 'test-plugin.php'
+          plugin_main_file: 'test-plugin.php'
