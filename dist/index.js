@@ -16,9 +16,18 @@ const path = __nccwpck_require__(6928);
  * @returns {string} The current version
  */
 function getCurrentVersion(pluginDir, pluginMainFile) {
+  if (!pluginDir || !pluginMainFile) {
+    throw new Error('Plugin directory and main file name are required');
+  }
+
   const filePath = path.join(pluginDir, pluginMainFile);
 
   try {
+    const stats = fs.statSync(filePath);
+    if (!stats.isFile()) {
+      throw new Error(`Not a file: ${filePath}`);
+    }
+
     const content = fs.readFileSync(filePath, 'utf8');
     const versionMatch = content.match(/Version:\s*([^*\n\r]*)/);
 
@@ -34,7 +43,7 @@ function getCurrentVersion(pluginDir, pluginMainFile) {
     return version;
   } catch (error) {
     if (error.code === 'ENOENT') {
-      throw new Error(`Plugin file not found at: ${filePath}`);
+      throw new Error(`Plugin file not found: ${filePath}`);
     }
     throw error;
   }
@@ -184,16 +193,16 @@ function run() {
     const bumpType = core.getInput('bump_type');
     const prereleaseType = core.getInput('prerelease_type');
     const pluginDir = core.getInput('plugin_dir');
-    const mainFile = core.getInput('main_file');
+    const pluginMainFile = core.getInput('main_file');
 
     // Debug input values
     core.debug('Inputs received:');
     core.debug(`  bump_type: ${bumpType}`);
     core.debug(`  prerelease_type: ${prereleaseType}`);
     core.debug(`  plugin_dir: ${pluginDir}`);
-    core.debug(`  main_file: ${mainFile}`);
+    core.debug(`  main_file: ${pluginMainFile}`);
 
-    const oldVersion = getCurrentVersion(pluginDir, mainFile);
+    const oldVersion = getCurrentVersion(pluginDir, pluginMainFile);
     const newVersion = bumpVersion(oldVersion, bumpType, prereleaseType);
     const isVersionBumped = oldVersion !== newVersion;
 
