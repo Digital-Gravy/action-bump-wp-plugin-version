@@ -4,6 +4,8 @@
   "description": "GitHub Action to bump WordPress plugin versions",
   "main": "index.js",
   "scripts": {
+    "build": "ncc build index.js -o dist",
+    "prepare": "npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint .",
@@ -23,6 +25,7 @@
     "@actions/github": "^6.0.0"
   },
   "devDependencies": {
+    "@vercel/ncc": "^0.38.1",
     "@types/jest": "^29.5.11",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
