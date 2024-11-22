@@ -9,7 +9,33 @@ This document outlines the steps to build and publish a new release of this GitH
 - Git installed
 - Repository cloned locally
 
-## Steps
+## Using the Release Script
+
+The easiest way to create a new release is to use the provided release script:
+
+```bash
+npm run release v1.0.0
+```
+
+The script will:
+
+1. Run tests and linting checks
+2. Build the action
+3. Commit the dist directory
+4. Create version-specific tag (e.g., v1.0.0)
+5. Create/update major version tag (e.g., v1)
+6. Push everything to GitHub
+
+After the script completes:
+
+1. Go to GitHub repository
+2. Navigate to Releases
+3. Create a new release using the pushed tag
+4. Add release notes
+
+## Manual Release Process
+
+If you need to perform a release manually, follow these steps:
 
 1. **Install Dependencies**
 
@@ -35,19 +61,17 @@ This document outlines the steps to build and publish a new release of this GitH
    npm run build
    ```
 
-   This creates a compiled version in the `dist/` directory.
-
 5. **Commit Changes**
 
    ```bash
    git add dist/
-   git add package.json package-lock.json
    git commit -m "Build for release"
+   git push
    ```
 
 6. **Tag and Release**
 
-   For a new major version:
+   For a new version:
 
    ```bash
    # Create version tag
@@ -58,20 +82,6 @@ This document outlines the steps to build and publish a new release of this GitH
 
    # Push both tags
    git push origin v1.0.0
-   git push origin v1 --force
-   ```
-
-   For a patch release:
-
-   ```bash
-   # Create version tag
-   git tag -a v1.0.1 -m "Release version 1.0.1"
-
-   # Update major version tag
-   git tag -fa v1 -m "Update v1 tag"
-
-   # Push both tags
-   git push origin v1.0.1
    git push origin v1 --force
    ```
 
@@ -87,11 +97,10 @@ This document outlines the steps to build and publish a new release of this GitH
 
 - Specific versions: `v1.0.0`, `v1.0.1`, etc.
 - Major version tag: `v1`
-- Pre-releases: `v1.0.0-beta.1`, `v1.0.0-alpha.1`
 
 ## Notes
 
-- Always build and test before creating a release
+- The `dist` folder must be committed as it contains the compiled action code
 - Major version tags (`v1`) should be force-pushed to point to the latest release in that major version
-- Remember to update the README if there are any usage changes
 - Users referencing `@v1` will automatically get the latest release in the v1.x.x series
+- Remember to update the README if there are any usage changes
