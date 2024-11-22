@@ -1,220 +1,71 @@
-# .github/workflows/test.yml
-name: Test WordPress Plugin Version Bump Action
-on: [push, pull_request]
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   test:
+    name: Run tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create test directory
-        run: mkdir -p tmp
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-      # Test patch release (1.2.3 -> 1.2.4)
-      - name: Prepare test file for patch release
-        run: |
-          cp test/plugin.php tmp/patch-test.php
-          sed -i 's/Version: .*/Version: 1.2.3/' tmp/patch-test.php
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Test patch release
-        id: patch_release
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: error
+
+  # This job ensures the action itself can run
+  test-action:
+    name: Test action execution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test major bump
         uses: ./
         with:
-          plugin_file_path: tmp/patch-test.php
-          release_type: Stable
-          version_bump: Patch
+          bump_type: 'major'
+          prerelease_type: 'none'
+          plugin_dir: 'test/fixtures'
+          main_file: 'test-plugin.php'
 
-      - name: Verify patch release and version_bumped true
-        run: |
-          version_line=$(grep -e 'Version:' tmp/patch-test.php)
-          version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+')
-          echo "Found version: '$version'"
-          echo "Version bumped output: '${{ steps.patch_release.outputs.version_bumped }}'"
-          # Print version with special characters visible
-          echo "Version (with special chars):"
-          echo "$version" | cat -A
-          [[ "$version" == "1.2.4" ]] || { echo "Version match failed"; exit 1; }
-          [[ "${{ steps.patch_release.outputs.version_bumped }}" == "true" ]] || { echo "Version bumped check failed"; exit 1; }
-
-      # Test minor release (1.2.3 -> 1.3.0)
-      - name: Prepare test file for minor release
-        run: |
-          cp test/plugin.php tmp/minor-test.php
-          sed -i 's/Version: .*/Version: 1.2.3/' tmp/minor-test.php
-
-      - name: Test minor release
-        id: minor_release
+      - name: Test patch with beta
         uses: ./
         with:
-          plugin_file_path: tmp/minor-test.php
-          release_type: Stable
-          version_bump: Minor
+          bump_type: 'patch'
+          prerelease_type: 'beta'
+          plugin_dir: 'test/fixtures'
+          main_file: 'test-plugin.php'
 
-      - name: Verify minor release
-        run: |
-          version_line=$(grep -e 'Version:' tmp/minor-test.php)
-          version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+')
-          echo "Found version: $version"
-          [[ "$version" == "1.3.0" ]] || exit 1
-
-      # Test major release (1.2.3 -> 2.0.0)
-      - name: Prepare test file for major release
-        run: |
-          cp test/plugin.php tmp/major-test.php
-          sed -i 's/Version: .*/Version: 1.2.3/' tmp/major-test.php
-
-      - name: Test major release
-        id: major_release
+      - name: Test build number
         uses: ./
         with:
-          plugin_file_path: tmp/major-test.php
-          release_type: Stable
-          version_bump: Major
-
-      - name: Verify major release
-        run: |
-          version_line=$(grep -e 'Version:' tmp/major-test.php)
-          version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+')
-          echo "Found version: $version"
-          [[ "$version" == "2.0.0" ]] || exit 1
-
-      # Test patch + alpha release (1.2.3 -> 1.2.4-alpha-1)
-      - name: Prepare test file for patch + alpha release
-        run: |
-          cp test/plugin.php tmp/patch-alpha-test.php
-          sed -i 's/Version: .*/Version: 1.2.3/' tmp/patch-alpha-test.php
-
-      - name: Test patch + alpha release
-        uses: ./
-        with:
-          plugin_file_path: tmp/patch-alpha-test.php
-          release_type: Alpha
-          version_bump: Patch
-
-      - name: Verify patch + alpha release
-        run: |
-          version_line=$(grep -e 'Version:' tmp/patch-alpha-test.php)
-          version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+(?:-alpha-\d+)?')
-          echo "Found version: $version"
-          [[ "$version" == "1.2.4-alpha-1" ]] || exit 1
-
-      # Test alpha increment (1.2.3-alpha-1 -> 1.2.3-alpha-2)
-      - name: Prepare test file for alpha increment
-        run: |
-          cp test/plugin.php tmp/alpha-increment-test.php
-          sed -i 's/Version: .*/Version: 1.2.3-alpha-1/' tmp/alpha-increment-test.php
-
-      - name: Test alpha increment
-        uses: ./
-        with:
-          plugin_file_path: tmp/alpha-increment-test.php
-          release_type: Alpha
-          version_bump: No version bump
-
-      - name: Verify alpha increment
-        run: |
-          version_line=$(grep -e 'Version:' tmp/alpha-increment-test.php)
-          version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+(?:-alpha-\d+)?')
-          echo "Found version: $version"
-          [[ "$version" == "1.2.3-alpha-2" ]] || exit 1
-
-      # Test alpha to beta transition (0.0.21-alpha-1 -> 0.0.21-beta-1)
-      - name: Prepare test file for alpha to beta
-        run: |
-          cp test/plugin.php tmp/alpha-to-beta-test.php
-          sed -i 's/Version: .*/Version: 0.0.21-alpha-1/' tmp/alpha-to-beta-test.php
-
-      - name: Test alpha to beta transition
-        uses: ./
-        with:
-          plugin_file_path: tmp/alpha-to-beta-test.php
-          release_type: Beta
-          version_bump: No version bump
-
-      - name: Verify alpha to beta transition
-        run: |
-          version_line=$(grep -e 'Version:' tmp/alpha-to-beta-test.php)
-          version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+(?:-beta-\d+)?')
-          echo "Found version: $version"
-          [[ "$version" == "0.0.21-beta-1" ]] || exit 1
-
-      # Test beta to rc transition (0.0.21-beta-1 -> 0.0.21-rc-1)
-      - name: Prepare test file for beta to rc
-        run: |
-          cp test/plugin.php tmp/beta-to-rc-test.php
-          sed -i 's/Version: .*/Version: 0.0.21-beta-1/' tmp/beta-to-rc-test.php
-
-      - name: Test beta to rc transition
-        uses: ./
-        with:
-          plugin_file_path: tmp/beta-to-rc-test.php
-          release_type: RC
-          version_bump: No version bump
-
-      - name: Verify beta to rc transition
-        run: |
-          version_line=$(grep -e 'Version:' tmp/beta-to-rc-test.php)
-          version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+(?:-rc-\d+)?')
-          echo "Found version: $version"
-          [[ "$version" == "0.0.21-rc-1" ]] || exit 1
-
-      # Test build release (1.2.3 -> 1.2.3+[timestamp])
-      - name: Prepare test file for build release
-        run: |
-          cp test/plugin.php tmp/build-test.php
-          sed -i 's/Version: .*/Version: 1.2.3/' tmp/build-test.php
-
-      - name: Test build release
-        uses: ./
-        with:
-          plugin_file_path: tmp/build-test.php
-          release_type: Stable
-          version_bump: Build
-
-      - name: Verify build release
-        run: |
-          version_line=$(grep -e 'Version:' tmp/build-test.php)
-          version=$(echo $version_line)
-          echo "Found version: $version"
-          [[ "$version" =~ Version:\s*1\.2\.3\+[0-9]{14}-[0-9]+$ ]] || exit 1
-
-      # Test build release with prerelease (1.2.3-alpha-1 -> 1.2.3-alpha-1+[timestamp])
-      - name: Prepare test file for build release with prerelease
-        run: |
-          cp test/plugin.php tmp/build-prerelease-test.php
-          sed -i 's/Version: .*/Version: 1.2.3-alpha-1/' tmp/build-prerelease-test.php
-
-      - name: Test build release with prerelease
-        uses: ./
-        with:
-          plugin_file_path: tmp/build-prerelease-test.php
-          release_type: Alpha
-          version_bump: Build
-
-      - name: Verify build release with prerelease
-        run: |
-          version_line=$(grep -e 'Version:' tmp/build-prerelease-test.php)
-          version=$(echo $version_line)
-          echo "Found version: $version"
-          [[ "$version" =~ Version:\s*1\.2\.3-alpha-1\+[0-9]{14}-[0-9]+$ ]] || exit 1
-
-      # Test prerelease to stable (0.0.21-alpha-1 -> 0.0.21)
-      - name: Prepare test file for prerelease to stable
-        run: |
-          cp test/plugin.php tmp/prerelease-to-stable-test.php
-          sed -i 's/Version: .*/Version: 0.0.21-alpha-1/' tmp/prerelease-to-stable-test.php
-
-      - name: Test prerelease to stable
-        uses: ./
-        with:
-          plugin_file_path: tmp/prerelease-to-stable-test.php
-          release_type: Stable
-          version_bump: No version bump
-
-      - name: Verify prerelease to stable
-        run: |
-          version_line=$(grep -e 'Version:' tmp/prerelease-to-stable-test.php)
-          version=$(echo $version_line | grep -oP '\d+\.\d+\.\d+')
-          echo "Found version: $version"
-          [[ "$version" == "0.0.21" ]] || exit 1
+          bump_type: 'build'
+          prerelease_type: 'none'
+          plugin_dir: 'test/fixtures'
+          main_file: 'test-plugin.php'
