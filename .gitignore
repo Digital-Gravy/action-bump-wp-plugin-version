@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-dist/
 
 # Coverage reports
 coverage/
@@ -23,3 +22,6 @@ Thumbs.db
 
 # npm package files
 *.tgz
+
+# Do NOT ignore dist folder
+# !dist/
