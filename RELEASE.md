@@ -11,27 +11,19 @@ This document outlines the steps to build and publish a new release of this GitH
 
 ## Using the Release Script
 
-The easiest way to create a new release is to use the provided release script:
+The easiest way to create a new release is to use the provided GitHub workflow that is triggered by pushing a new tag:
 
 ```bash
-npm run release v1.0.0
+git tag -a v1.0.0 -m "Release version 1.0.0"
+git push origin v1.0.0
 ```
 
-The script will:
+The workflow will:
 
-1. Run tests and linting checks
-2. Build the action
-3. Commit the dist directory
-4. Create version-specific tag (e.g., v1.0.0)
-5. Create/update major version tag (e.g., v1)
-6. Push everything to GitHub
-
-After the script completes:
-
-1. Go to GitHub repository
-2. Navigate to Releases
-3. Create a new release using the pushed tag
-4. Add release notes
+1. Run all linting and testing checks
+2. Build the action and push the dist directory to the main branch
+3. Create/update major version tag (e.g., v1)
+4. Create a GitHub release with auto-generated release notes
 
 ## Manual Release Process
 
