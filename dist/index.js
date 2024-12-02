@@ -155,6 +155,15 @@ function bumpVersion(currentVersion, bumpType, prereleaseType) {
     return formatVersion(newVersion);
   }
 
+  // When moving from prerelease to stable with no other changes,
+  // just remove the prerelease info
+  if (bumpType === 'none' && prereleaseType === 'none' && parsed.prereleaseType) {
+    newVersion.prereleaseType = null;
+    newVersion.prereleaseNum = null;
+    newVersion.build = null;
+    return formatVersion(newVersion);
+  }
+
   // Handle stable releases
   switch (bumpType) {
     case 'major':
@@ -283,16 +292,14 @@ function run() {
     }
 
     // Output results with visual separation
-    core.info('╔════════════════════════════════════════');
-    core.info('║ WordPress Plugin Version Bumper Results');
-    core.info('╠════════════════════════════════════════');
-    core.info(`║ Old Version: ${oldVersion}`);
-    core.info(`║ New Version: ${newVersion}`);
-    core.info(`║ Version Bumped: ${isVersionBumped}`);
+    core.info('WordPress Plugin Version Bumper Results');
+    core.info('═══════════════════════════════════════');
+    core.info(`Old Version: ${oldVersion}`);
+    core.info(`New Version: ${newVersion}`);
+    core.info(`Version Bumped: ${isVersionBumped}`);
     if (isVersionBumped) {
-      core.info(`║ File Updated: ${filePath}`);
+      core.info(`File Updated: ${filePath}`);
     }
-    core.info('╚════════════════════════════════════════');
 
     core.setOutput('old_version', oldVersion);
     core.setOutput('new_version', newVersion);
