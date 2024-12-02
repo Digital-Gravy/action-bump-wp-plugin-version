@@ -149,6 +149,15 @@ function bumpVersion(currentVersion, bumpType, prereleaseType) {
     return formatVersion(newVersion);
   }
 
+  // When moving from prerelease to stable with no other changes,
+  // just remove the prerelease info
+  if (bumpType === 'none' && prereleaseType === 'none' && parsed.prereleaseType) {
+    newVersion.prereleaseType = null;
+    newVersion.prereleaseNum = null;
+    newVersion.build = null;
+    return formatVersion(newVersion);
+  }
+
   // Handle stable releases
   switch (bumpType) {
     case 'major':

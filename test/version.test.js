@@ -201,6 +201,20 @@ describe('Version Bumper', () => {
         'Cannot downgrade prerelease type'
       );
     });
+
+    describe('Prerelease to Stable Version', () => {
+      it('should remove prerelease info without changing version numbers when stabilizing', () => {
+        expect(bumpVersion('0.1.0-alpha-1', 'none', 'none')).toBe('0.1.0');
+        expect(bumpVersion('1.2.3-beta-2', 'none', 'none')).toBe('1.2.3');
+        expect(bumpVersion('2.0.0-rc-1', 'none', 'none')).toBe('2.0.0');
+      });
+
+      it('should still allow normal version bumps from prereleases if explicitly requested', () => {
+        expect(bumpVersion('0.1.0-alpha-1', 'patch', 'none')).toBe('0.1.1');
+        expect(bumpVersion('1.2.0-beta-1', 'minor', 'none')).toBe('1.3.0');
+        expect(bumpVersion('2.0.0-rc-1', 'major', 'none')).toBe('3.0.0');
+      });
+    });
   });
 
   describe('getCurrentVersion', () => {
