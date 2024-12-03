@@ -1,5 +1,9 @@
 coverage
 dist
 
+# Package files
 package-lock.json
 composer.lock
+
+# TypeScript declaration files
+*.d.ts
