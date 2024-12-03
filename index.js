@@ -38,11 +38,11 @@ function resolvePluginFile(pluginDir, pluginMainFile) {
  * @param {string} pluginMainFile The main plugin file
  * @returns {string} The current version
  */
-function getCurrentVersion(pluginDir, pluginMainFile) {
+function getCurrentVersion(pluginDir, pluginMainFile, read) {
   const filePath = resolvePluginFile(pluginDir, pluginMainFile);
 
   try {
-    const content = fs.readFileSync(filePath, 'utf8');
+    const content = read(filePath, 'utf8');
     const versionMatch = content.match(/Version:\s*([^*\n\r]*)/);
 
     if (!versionMatch || !versionMatch[1] || !versionMatch[1].trim()) {
@@ -123,7 +123,7 @@ function generateTimestamp() {
  * @param {string} prereleaseType The type of prerelease (none, alpha, beta, rc)
  * @returns {string} The new version
  */
-function bumpVersion(currentVersion, bumpType, prereleaseType) {
+function bumpVersion(bumpType, prereleaseType, currentVersion) {
   const parsed = parseVersion(currentVersion);
   if (!parsed) throw new Error('Invalid version format');
 
@@ -216,11 +216,11 @@ function formatVersion(version) {
  * @param {string} oldVersion Current version to replace
  * @param {string} newVersion New version to set
  */
-function updatePluginVersion(pluginDir, pluginMainFile, oldVersion, newVersion) {
+function updatePluginVersionOld(pluginDir, pluginMainFile, oldVersion, newVersion, write, read) {
   const filePath = resolvePluginFile(pluginDir, pluginMainFile);
 
   try {
-    let content = fs.readFileSync(filePath, 'utf8');
+    let content = read(filePath, 'utf8');
 
     // Find the Version line with exact whitespace capture
     const versionRegex = /(Version:[ ]*)(.*?)([ ]*(?=\*|$|\r?\n))/;
@@ -243,7 +243,7 @@ function updatePluginVersion(pluginDir, pluginMainFile, oldVersion, newVersion) 
     content = content.replace(versionLine, newLine);
 
     try {
-      fs.writeFileSync(filePath, content, 'utf8');
+      write(filePath, content, 'utf8');
     } catch (writeError) {
       throw new Error(`Failed to update plugin file: ${writeError.message}`);
     }
@@ -256,6 +256,26 @@ function updatePluginVersion(pluginDir, pluginMainFile, oldVersion, newVersion) 
     }
     throw error;
   }
+}
+
+function updatePluginVersion(filePathOrFile, bumpType, prereleaseType) {
+  if (bumpType === 'none' && prereleaseType === 'none') {
+    return { isVersionBumped: false };
+  }
+
+  const filePath = typeof filePathOrFile === 'string' ? filePathOrFile : filePathOrFile.path;
+  const write = typeof filePathOrFile === 'string' ? fs.writeFileSync : filePathOrFile.write;
+  const read = typeof filePathOrFile === 'string' ? fs.readFileSync : filePathOrFile.read;
+  const pluginDir = filePath.split('/').slice(0, -1).join('/');
+  const pluginMainFile = filePath.split('/').pop();
+
+  const oldVersion = getCurrentVersion(pluginDir, pluginMainFile, read);
+  const newVersion = bumpVersion(bumpType, prereleaseType, oldVersion);
+  const isVersionBumped = newVersion !== oldVersion;
+
+  updatePluginVersionOld(pluginDir, pluginMainFile, null, newVersion, write, read);
+
+  return { newVersion, isVersionBumped };
 }
 
 /**
@@ -275,32 +295,33 @@ function run() {
     core.debug(`  plugin_dir: ${pluginDir}`);
     core.debug(`  plugin_main_file: ${pluginMainFile}`);
 
+    if (!pluginDir || !pluginMainFile) {
+      throw new Error('Plugin directory and main file name are required');
+    }
+
     // Validate plugin file exists before proceeding
     const filePath = resolvePluginFile(pluginDir, pluginMainFile);
-    const oldVersion = getCurrentVersion(pluginDir, pluginMainFile);
-    const newVersion = bumpVersion(oldVersion, bumpType, prereleaseType);
-    const isVersionBumped = oldVersion !== newVersion;
 
-    if (isVersionBumped) {
-      updatePluginVersion(pluginDir, pluginMainFile, oldVersion, newVersion);
-    }
+    const { newVersion, isVersionBumped } = updatePluginVersion(filePath, bumpType, prereleaseType);
 
     // Output results with visual separation
     core.info('WordPress Plugin Version Bumper Results');
     core.info('═══════════════════════════════════════');
-    core.info(`Old Version: ${oldVersion}`);
+    core.info(`Old Version: ${getCurrentVersion(pluginDir, pluginMainFile)}`);
     core.info(`New Version: ${newVersion}`);
     core.info(`Version Bumped: ${isVersionBumped}`);
     if (isVersionBumped) {
       core.info(`File Updated: ${filePath}`);
     }
 
-    core.setOutput('old_version', oldVersion);
+    core.setOutput('old_version', getCurrentVersion(pluginDir, pluginMainFile));
     core.setOutput('new_version', newVersion);
     core.setOutput('is_version_bumped', isVersionBumped);
 
     if (isVersionBumped) {
-      core.notice(`Version bumped from ${oldVersion} to ${newVersion}`);
+      core.notice(
+        `Version bumped from ${getCurrentVersion(pluginDir, pluginMainFile)} to ${newVersion}`
+      );
     } else {
       core.notice('No version change needed');
     }
