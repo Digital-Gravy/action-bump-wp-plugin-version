@@ -2,18 +2,39 @@
  * Interface for version bump results
  */
 export interface VersionResult {
-    oldVersion: string;
-    newVersion: string;
+    oldVersion: string | null;
+    newVersion: string | null;
     isVersionBumped: boolean;
 }
 /**
+ * Valid bump types as a const object
+ */
+export declare const BumpTypes: {
+    readonly MAJOR: "major";
+    readonly MINOR: "minor";
+    readonly PATCH: "patch";
+    readonly BUILD: "build";
+    readonly STABLE: "stable";
+    readonly NONE: "none";
+};
+/**
  * Type definition for valid bump types
  */
-export type BumpType = 'major' | 'minor' | 'patch' | 'build' | 'none';
+export type BumpType = (typeof BumpTypes)[keyof typeof BumpTypes];
+/**
+ * Valid prerelease types as a const object
+ */
+export declare const PrereleaseTypes: {
+    readonly NONE: "none";
+    readonly DEV: "dev";
+    readonly ALPHA: "alpha";
+    readonly BETA: "beta";
+    readonly RC: "rc";
+};
 /**
  * Type definition for valid prerelease types
  */
-export type PrereleaseType = 'none' | 'dev' | 'alpha' | 'beta' | 'rc';
+export type PrereleaseType = (typeof PrereleaseTypes)[keyof typeof PrereleaseTypes];
 /**
  * Bumps the version number in a WordPress plugin file
  *
