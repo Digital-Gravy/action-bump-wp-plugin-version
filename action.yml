@@ -2,7 +2,7 @@ name: 'WordPress Plugin Version Bumper'
 description: 'Bumps version numbers for WordPress plugins following semantic versioning with prerelease support'
 inputs:
   bump_type:
-    description: 'Type of version bump to perform (none/major/minor/patch/build)'
+    description: 'Type of version bump to perform (major/minor/patch/build/stable/none)'
     required: true
     default: 'patch'
   prerelease_type:
@@ -17,11 +17,11 @@ inputs:
     required: true
 outputs:
   new_version:
-    description: 'The new version number'
+    description: 'The new version number (e.g., 1.2.3-alpha-1+20240101120000)'
   old_version:
     description: 'The previous version number'
   is_version_bumped:
-    description: 'Whether the version was bumped'
+    description: 'Whether the version was bumped (true/false)'
 
 runs:
   using: 'node20'
