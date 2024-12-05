@@ -9,15 +9,15 @@ A GitHub Action to automatically bump version numbers in WordPress plugin files.
 Versions follow this format:
 
 ```
-major.minor.patch[-prerelease-number][+build]
+major.minor.patch[-prerelease-number][+YYYYMMDDHHmmss]
 ```
 
 Examples:
 
 - `1.2.3` - Standard version
 - `1.2.3-alpha-1` - Alpha prerelease
-- `1.2.3+20240101120000` - Version with build timestamp
-- `1.2.3-beta-2+20240101120000` - Beta prerelease with build timestamp
+- `1.2.3+20241205120000` - Version with build timestamp
+- `1.2.3-beta-2+20241205120000` - Beta prerelease with build timestamp
 
 ## Usage
 
@@ -26,7 +26,7 @@ Examples:
   uses: Digital-Gravy/action-bump-wp-plugin-version@v1
   with:
     # Type of version bump to perform (required)
-    # Possible values: major, minor, patch, build, none
+    # Possible values: major, minor, patch, build, stable, none
     bump_type: 'patch'
 
     # Type of prerelease to set/bump (required)
@@ -73,7 +73,8 @@ Example of using outputs:
 - **Major**: Backwards-incompatible changes (`1.2.3` → `2.0.0`)
 - **Minor**: New features, backwards-compatible (`1.2.3` → `1.3.0`)
 - **Patch**: Bug fixes, backwards-compatible (`1.2.3` → `1.2.4`)
-- **Build**: Adds build timestamp (`1.2.3` → `1.2.3+20240101120000`)
+- **Build**: Adds build timestamp (`1.2.3` → `1.2.3+20241205120000`)
+- **Stable**: Removes prerelease and build numbers (`1.2.3-alpha-1+20241205120000` → `1.2.3`)
 
 ### Prerelease Progression
 
@@ -85,22 +86,24 @@ Prereleases follow this order: `dev` → `alpha` → `beta` → `rc`
 
 ### Build Numbers
 
-- Format: `YYYYMMDDhhmmss` timestamp
-- Can be added to any version type
+- Format: `YYYYMMDDHHmmss` timestamp
+- Can be combined with any version type
 - Build numbers are removed on version bumps
 
 ## Examples
 
-| Current Version | Bump Type | Prerelease | Result                      |
-| --------------- | --------- | ---------- | --------------------------- |
-| 1.2.3           | patch     | none       | 1.2.4                       |
-| 1.2.3           | minor     | none       | 1.3.0                       |
-| 1.2.3           | major     | none       | 2.0.0                       |
-| 1.2.3           | patch     | alpha      | 1.2.4-alpha-1               |
-| 1.2.3-alpha-1   | none      | alpha      | 1.2.3-alpha-2               |
-| 1.2.3-alpha-2   | none      | beta       | 1.2.3-beta-1                |
-| 1.2.3           | build     | none       | 1.2.3+20240101120000        |
-| 1.2.3-beta-1    | build     | none       | 1.2.3-beta-1+20240101120000 |
+| Current Version             | Bump Type | Prerelease | Result                      |
+| --------------------------- | --------- | ---------- | --------------------------- |
+| 1.2.3                       | patch     | none       | 1.2.4                       |
+| 1.2.3                       | minor     | none       | 1.3.0                       |
+| 1.2.3                       | major     | none       | 2.0.0                       |
+| 1.2.3                       | patch     | alpha      | 1.2.4-alpha-1               |
+| 1.2.3-alpha-1               | none      | alpha      | 1.2.3-alpha-2               |
+| 1.2.3-alpha-2               | none      | beta       | 1.2.3-beta-1                |
+| 1.2.3                       | build     | none       | 1.2.3+20240101120000        |
+| 1.2.3-beta-1                | build     | none       | 1.2.3-beta-1+20240101120000 |
+| 1.2.3-beta-1                | stable    | none       | 1.2.3                       |
+| 1.2.3-beta-1+20241205120000 | stable    | none       | 1.2.3                       |
 
 ## Error Handling
 
