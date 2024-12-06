@@ -5,13 +5,24 @@ import {
   BumpTypes,
   PrereleaseTypes,
 } from '../src/versionBumper';
-import { jest, describe, it, expect } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import fs from 'fs';
 
 jest.mock('fs');
 
 describe('Version file', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
+  });
+
   it('is unchanged when bump type and prerelease type are none', () => {
+    const mockPluginWithVersion = `<?php
+/**
+ * Plugin Name: Test Plugin
+ * Version: 1.2.3
+ */`;
+    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const filePath = 'test/fixtures/test-plugin.php';
     const bumpType = BumpTypes.NONE;
     const prereleaseType = PrereleaseTypes.NONE;
@@ -19,6 +30,8 @@ describe('Version file', () => {
     const result = bumpVersion(filePath, bumpType, prereleaseType);
 
     expect(result.isVersionBumped).toBe(false);
+    expect(result.oldVersion).toBe('1.2.3');
+    expect(result.newVersion).toBe('1.2.3');
   });
 
   it('is unchanged if bump type is invalid', () => {
@@ -39,6 +52,15 @@ describe('Version file', () => {
     expect(() => bumpVersion(filePath, bumpType, prereleaseType)).toThrow(
       'Invalid prerelease type: invalid'
     );
+  });
+
+  it('is unchanged if file does not exist', () => {
+    (fs.existsSync as jest.Mock).mockReturnValue(false);
+    const filePath = 'path/to/nonexistent/file.php';
+    const bumpType = BumpTypes.PATCH;
+    const prereleaseType = PrereleaseTypes.NONE;
+
+    expect(() => bumpVersion(filePath, bumpType, prereleaseType)).toThrow('File does not exist');
   });
 
   it('is unchanged if there was an error reading the file', () => {
@@ -174,6 +196,10 @@ $version = 'Version: 3.4.5-alpha-1-20241205120000'; // this should also be ignor
 });
 
 describe('Version bumping', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('increments patch version, leaves minor and major unchanged when doing patch bump', () => {
     const mockPluginWithVersion = `<?php
 /**

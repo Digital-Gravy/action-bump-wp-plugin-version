@@ -171,15 +171,6 @@ export function bumpVersion(
   bumpType: BumpType,
   prereleaseType: PrereleaseType
 ): VersionResult {
-  // No bump if bump type and prerelease type is none
-  if (bumpType === BumpTypes.NONE && prereleaseType === PrereleaseTypes.NONE) {
-    return {
-      oldVersion: null,
-      newVersion: null,
-      isVersionBumped: false,
-    };
-  }
-
   // Validate inputs
   if (!Object.values(BumpTypes).includes(bumpType)) {
     throw new Error(`Invalid bump type: ${bumpType}`);
@@ -189,6 +180,9 @@ export function bumpVersion(
   }
 
   // Read file
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`File does not exist: ${filePath}`);
+  }
   let fileContents: string = fs.readFileSync(filePath, 'utf8');
 
   // Extract current version
