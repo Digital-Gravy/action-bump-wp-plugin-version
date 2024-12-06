@@ -53,13 +53,14 @@ function run() {
         const prereleaseType = core.getInput('prerelease_type');
         const pluginDir = core.getInput('plugin_dir');
         const pluginMainFile = core.getInput('plugin_main_file');
+        const filePath = `${pluginDir}/${pluginMainFile}`;
         // Debug input values
         core.debug('Inputs received:');
         core.debug(`  bump_type: ${bumpType}`);
         core.debug(`  prerelease_type: ${prereleaseType}`);
         core.debug(`  plugin_dir: ${pluginDir}`);
         core.debug(`  plugin_main_file: ${pluginMainFile}`);
-        const filePath = `${pluginDir}/${pluginMainFile}`;
+        core.debug(`  file_path: ${filePath}`);
         const { oldVersion, newVersion, isVersionBumped } = (0, versionBumper_1.bumpVersion)(filePath, bumpType, prereleaseType);
         // Output results with visual separation
         core.info('WordPress Plugin Version Bumper Results');
