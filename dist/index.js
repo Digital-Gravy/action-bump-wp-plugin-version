@@ -138,8 +138,8 @@ exports.PrereleaseTypes = {
  * @throws Error if version not found in plugin header
  */
 function findVersionPosition(content) {
-    // Find the plugin header block (must start with Plugin Name after comment start)
-    const headerRegex = /\/\*\*\s*\n\s*\* Plugin Name:[\s\S]*?\*\//;
+    // Find any comment block containing Plugin Name
+    const headerRegex = /\/\*\*[\s\S]*?Plugin Name:[\s\S]*?\*\//;
     const headerMatch = content.match(headerRegex);
     if (!headerMatch) {
         throw new Error('No plugin header found in the file');
