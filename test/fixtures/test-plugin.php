@@ -1,5 +1,11 @@
 <?php
 /**
+ * PHPCS required docblock.
+ *
+ * @package test-plugin
+ */
+
+/**
  * Plugin Name: Test Plugin
  * Plugin URI: https://example.com/test-plugin
  * Description: A test plugin for version bumping

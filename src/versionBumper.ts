@@ -62,8 +62,10 @@ type Version = {
  * @throws Error if version not found in plugin header
  */
 function findVersionPosition(content: string): { match: string; index: number } {
-  // First ensure we're in the plugin header
-  const headerMatch = content.match(/\/\*\*[\s\S]*?\*\//);
+  // Find the plugin header block (must start with Plugin Name after comment start)
+  const headerRegex = /\/\*\*\s*\n\s*\* Plugin Name:[\s\S]*?\*\//;
+  const headerMatch = content.match(headerRegex);
+
   if (!headerMatch) {
     throw new Error('No plugin header found in the file');
   }

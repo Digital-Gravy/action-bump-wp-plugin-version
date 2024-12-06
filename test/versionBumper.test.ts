@@ -208,6 +208,25 @@ $version = 'Version: 3.4.5-alpha-1-20241205120000'; // this should also be ignor
     expect(result.oldVersion).toBe('1.2.3');
     expect(result.newVersion).toBe('1.2.4');
   });
+
+  it('correctly extracts version with extra comment block', () => {
+    const mockPluginWithCommentBlock = `<?php
+/**
+ * Automatic.css Main file.
+ *
+ * @package Automatic_CSS
+ */
+
+/**
+ * Plugin Name: Test Plugin
+ * Version: 1.2.3
+ */
+`;
+    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithCommentBlock);
+    const result = bumpVersion('test.php', BumpTypes.PATCH, PrereleaseTypes.NONE);
+
+    expect(result.oldVersion).toBe('1.2.3');
+  });
 });
 
 describe('Version bumping', () => {
