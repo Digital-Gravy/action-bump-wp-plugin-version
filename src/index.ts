@@ -10,6 +10,7 @@ function run(): void {
     const prereleaseType = core.getInput('prerelease_type');
     const pluginDir = core.getInput('plugin_dir');
     const pluginMainFile = core.getInput('plugin_main_file');
+    const filePath = `${pluginDir}/${pluginMainFile}`;
 
     // Debug input values
     core.debug('Inputs received:');
@@ -17,8 +18,8 @@ function run(): void {
     core.debug(`  prerelease_type: ${prereleaseType}`);
     core.debug(`  plugin_dir: ${pluginDir}`);
     core.debug(`  plugin_main_file: ${pluginMainFile}`);
+    core.debug(`  file_path: ${filePath}`);
 
-    const filePath = `${pluginDir}/${pluginMainFile}`;
     const { oldVersion, newVersion, isVersionBumped }: VersionResult = bumpVersion(
       filePath,
       bumpType as BumpType,
