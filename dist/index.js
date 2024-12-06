@@ -233,14 +233,6 @@ function getPrereleaseOrder(type) {
  * @returns Object containing old version, new version, and whether version was bumped
  */
 function bumpVersion(filePath, bumpType, prereleaseType) {
-    // No bump if bump type and prerelease type is none
-    if (bumpType === exports.BumpTypes.NONE && prereleaseType === exports.PrereleaseTypes.NONE) {
-        return {
-            oldVersion: null,
-            newVersion: null,
-            isVersionBumped: false,
-        };
-    }
     // Validate inputs
     if (!Object.values(exports.BumpTypes).includes(bumpType)) {
         throw new Error(`Invalid bump type: ${bumpType}`);
@@ -249,6 +241,9 @@ function bumpVersion(filePath, bumpType, prereleaseType) {
         throw new Error(`Invalid prerelease type: ${prereleaseType}`);
     }
     // Read file
+    if (!fs_1.default.existsSync(filePath)) {
+        throw new Error(`File does not exist: ${filePath}`);
+    }
     let fileContents = fs_1.default.readFileSync(filePath, 'utf8');
     // Extract current version
     const versionObj = extractVersion(fileContents);
