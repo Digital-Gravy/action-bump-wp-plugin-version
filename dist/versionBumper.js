@@ -41,7 +41,7 @@ function findVersionPosition(content) {
         throw new Error('No plugin header found in the file');
     }
     // Find version within the header bounds
-    const versionRegex = /^\s*\*\s*Version:\s*(.+)\s*$/m;
+    const versionRegex = /^\s*[*\s]*Version:\s*(.+?)(?:\s*\*\/|\s*$)/m;
     const headerContent = headerMatch[0];
     const versionMatch = headerContent.match(versionRegex);
     if (!versionMatch) {
@@ -71,10 +71,12 @@ function extractVersion(content) {
  * @returns Version object
  */
 function parseVersion(version) {
+    // Clean up the version string first by removing any trailing comment markers or whitespace
+    const cleanVersion = version.replace(/\s*\*\/.*$/, '').trim();
     // format: major.minor.patch[-prerelease-prereleaseNum][+build]
     // example: 1.2.3-alpha-1+20210101120000
     const regex = /^(\d+)\.(\d+)\.(\d+)(?:-([a-z]+)-(\d+))?(?:\+(\d{14}))?$/;
-    const match = version.match(regex);
+    const match = cleanVersion.match(regex);
     if (!match)
         throw new Error('Invalid version format');
     return {
