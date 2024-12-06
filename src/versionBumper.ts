@@ -69,7 +69,7 @@ function findVersionPosition(content: string): { match: string; index: number } 
   }
 
   // Find version within the header bounds
-  const versionRegex = /^\s*\*\s*Version:\s*(.+)\s*$/m;
+  const versionRegex = /^\s*[*\s]*Version:\s*(.+?)(?:\s*\*\/|\s*$)/m;
   const headerContent = headerMatch[0];
   const versionMatch = headerContent.match(versionRegex);
 
@@ -104,10 +104,13 @@ function extractVersion(content: string): Version {
  * @returns Version object
  */
 function parseVersion(version: string): Version {
+  // Clean up the version string first by removing any trailing comment markers or whitespace
+  const cleanVersion = version.replace(/\s*\*\/.*$/, '').trim();
+
   // format: major.minor.patch[-prerelease-prereleaseNum][+build]
   // example: 1.2.3-alpha-1+20210101120000
   const regex = /^(\d+)\.(\d+)\.(\d+)(?:-([a-z]+)-(\d+))?(?:\+(\d{14}))?$/;
-  const match = version.match(regex);
+  const match = cleanVersion.match(regex);
 
   if (!match) throw new Error('Invalid version format');
 

@@ -193,6 +193,21 @@ $version = 'Version: 3.4.5-alpha-1-20241205120000'; // this should also be ignor
       'utf8'
     );
   });
+
+  it('correctly extracts version with extra whitespace formatting', () => {
+    const mockPluginWithFormattedVersion = `<?php
+/**
+ * Plugin Name:       Test Plugin
+ * Version:           1.2.3
+ * Description:       A test plugin with extra formatting
+ */`;
+
+    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithFormattedVersion);
+    const result = bumpVersion('test.php', BumpTypes.PATCH, PrereleaseTypes.NONE);
+
+    expect(result.oldVersion).toBe('1.2.3');
+    expect(result.newVersion).toBe('1.2.4');
+  });
 });
 
 describe('Version bumping', () => {
