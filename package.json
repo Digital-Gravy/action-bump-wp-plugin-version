@@ -11,7 +11,8 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "cli": "ts-node src/cli.ts"
   },
   "keywords": [
     "github-action",
@@ -37,6 +38,7 @@
     "jest": "^29.7.0",
     "prettier": "^3.1.0",
     "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   }
 }

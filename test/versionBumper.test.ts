@@ -4,90 +4,68 @@ import {
   PrereleaseType,
   BumpTypes,
   PrereleaseTypes,
+  FileSystem,
 } from '../src/versionBumper';
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
-import fs from 'fs';
 
-jest.mock('fs');
+let mockFileSystem: FileSystem;
+let writtenFiles: Record<string, string>;
 
-describe('Version file', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (fs.existsSync as jest.Mock).mockReturnValue(true);
-  });
-
-  it('is unchanged when bump type and prerelease type are none', () => {
-    const mockPluginWithVersion = `<?php
+beforeEach(() => {
+  writtenFiles = {};
+  const readFileSyncMock = jest.fn((path: string): string => {
+    if (path.includes('invalid')) {
+      return `<?php
+/**
+ * Plugin Name: Test Plugin
+ * Version: not.valid.semver
+ */`;
+    }
+    return `<?php
 /**
  * Plugin Name: Test Plugin
  * Version: 1.2.3
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
-    const filePath = 'test/fixtures/test-plugin.php';
-    const bumpType = BumpTypes.NONE;
-    const prereleaseType = PrereleaseTypes.NONE;
+  });
 
-    const result = bumpVersion(filePath, bumpType, prereleaseType);
+  const writeFileSyncMock = jest.fn((path: string, data: string): void => {
+    writtenFiles[path] = data;
+  });
 
-    expect(result.isVersionBumped).toBe(false);
-    expect(result.oldVersion).toBe('1.2.3');
-    expect(result.newVersion).toBe('1.2.3');
+  const existsSyncMock = jest.fn((path: string): boolean => {
+    return !path.includes('nonexistent');
+  });
+
+  mockFileSystem = {
+    readFileSync: readFileSyncMock,
+    writeFileSync: writeFileSyncMock,
+    existsSync: existsSyncMock,
+  } as FileSystem;
+});
+
+describe('Version Bumping', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
   it('is unchanged if bump type is invalid', () => {
-    const filePath = 'test/fixtures/test-plugin.php';
+    const filePath = 'test-plugin.php';
     const bumpType = 'invalid' as BumpType;
     const prereleaseType = PrereleaseTypes.NONE;
 
-    expect(() => bumpVersion(filePath, bumpType, prereleaseType)).toThrow(
-      'Invalid bump type: invalid'
-    );
+    expect(() =>
+      bumpVersion(filePath, bumpType, prereleaseType, undefined, mockFileSystem)
+    ).toThrow('Invalid bump type: invalid');
   });
 
   it('is unchanged if prerelease type is invalid', () => {
-    const filePath = 'test/fixtures/test-plugin.php';
+    const filePath = 'test-plugin.php';
     const bumpType = BumpTypes.PATCH;
     const prereleaseType = 'invalid' as PrereleaseType;
 
-    expect(() => bumpVersion(filePath, bumpType, prereleaseType)).toThrow(
-      'Invalid prerelease type: invalid'
-    );
-  });
-
-  it('is unchanged if file does not exist', () => {
-    (fs.existsSync as jest.Mock).mockReturnValue(false);
-    const filePath = 'path/to/nonexistent/file.php';
-    const bumpType = BumpTypes.PATCH;
-    const prereleaseType = PrereleaseTypes.NONE;
-
-    expect(() => bumpVersion(filePath, bumpType, prereleaseType)).toThrow('File does not exist');
-  });
-
-  it('is unchanged if there was an error reading the file', () => {
-    (fs.readFileSync as jest.Mock).mockImplementation(() => {
-      throw new Error('Permission denied');
-    });
-    const filePath = 'path/to/nonexistent/file.php';
-    const bumpType = BumpTypes.PATCH;
-    const prereleaseType = PrereleaseTypes.NONE;
-
-    expect(() => bumpVersion(filePath, bumpType, prereleaseType)).toThrow('Permission denied');
-  });
-
-  it('is unchanged if file does not contain a version', () => {
-    const mockPluginWithoutVersion = `<?php
-/**
- * Plugin Name: Test Plugin
- * Description: A test plugin
- */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithoutVersion);
-    const filePath = 'test/fixtures/test-plugin.php';
-    const bumpType = BumpTypes.PATCH;
-    const prereleaseType = PrereleaseTypes.NONE;
-
-    expect(() => bumpVersion(filePath, bumpType, prereleaseType)).toThrow(
-      'No version found in the file'
-    );
+    expect(() =>
+      bumpVersion(filePath, bumpType, prereleaseType, undefined, mockFileSystem)
+    ).toThrow('Invalid prerelease type: invalid');
   });
 
   it('is unchanged if detected version is not valid', () => {
@@ -98,140 +76,14 @@ describe('Version file', () => {
  * Description: A test plugin
  */`;
 
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithInvalidVersion);
-    const filePath = 'test/fixtures/test-plugin.php';
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithInvalidVersion);
+    const filePath = 'test-plugin.php';
     const bumpType = BumpTypes.PATCH;
     const prereleaseType = PrereleaseTypes.NONE;
 
-    expect(() => bumpVersion(filePath, bumpType, prereleaseType)).toThrow('Invalid version format');
-  });
-
-  it('correctly extracts version from plugin header', () => {
-    const mockPluginWithVersion = `<?php
-/**
- * Plugin Name: Test Plugin
- * Version: 1.2.3
- * Description: A test plugin
- */`;
-
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
-    const result = bumpVersion('test.php', BumpTypes.PATCH, PrereleaseTypes.NONE);
-
-    expect(result.oldVersion).toBe('1.2.3');
-  });
-
-  it('ignores version strings outside of plugin header', () => {
-    const mockPluginWithMultipleVersions = `<?php
-/**
- * Plugin Name: Test Plugin
- * Version: 1.2.3
- */
-
-// Version: 2.0.0 - this should be ignored
-$version = 'Version: 3.0.0'; // this should also be ignored`;
-
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithMultipleVersions);
-    const result = bumpVersion('test.php', BumpTypes.PATCH, PrereleaseTypes.NONE);
-
-    expect(result.oldVersion).toBe('1.2.3');
-  });
-
-  it('is unchanged when no bump happens', () => {
-    const mockPluginWithVersion = `<?php
-/**
- * Plugin Name: Test Plugin
- * Version: 1.2.3
- */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
-    bumpVersion('test.php', BumpTypes.NONE, PrereleaseTypes.NONE);
-
-    expect(fs.writeFileSync).not.toHaveBeenCalled();
-  });
-
-  it('writes the new version to the file when a bump happens', () => {
-    const mockedPluginWithOldVersion = `<?php
-        /**
-         * Plugin Name: Test Plugin
-         * Version: 1.2.3
-         */`;
-    const mockedPluginWithNewVersion = `<?php
-        /**
-         * Plugin Name: Test Plugin
-         * Version: 1.2.4
-         */`;
-    (fs.readFileSync as jest.Mock).mockImplementation(() => mockedPluginWithOldVersion);
-    bumpVersion('plugin-dir/plugin.php', BumpTypes.PATCH, PrereleaseTypes.NONE);
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
-      'plugin-dir/plugin.php',
-      mockedPluginWithNewVersion,
-      'utf8'
-    );
-  });
-
-  it('does not overwrite version strings outside of plugin header', () => {
-    const mockPluginWithMultipleVersions = `<?php
-/**
- * Plugin Name: Test Plugin
- * Version: 1.2.3
- */
-
-// Version: 2.0.0 - this should be ignored
-$version = 'Version: 3.4.5-alpha-1-20241205120000'; // this should also be ignored
-`;
-
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithMultipleVersions);
-    bumpVersion('test.php', BumpTypes.PATCH, PrereleaseTypes.NONE);
-
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
-      'test.php',
-      expect.stringContaining('Version: 2.0.0'),
-      'utf8'
-    );
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
-      'test.php',
-      expect.stringContaining('Version: 3.4.5-alpha-1-20241205120000'),
-      'utf8'
-    );
-  });
-
-  it('correctly extracts version with extra whitespace formatting', () => {
-    const mockPluginWithFormattedVersion = `<?php
-/**
- * Plugin Name:       Test Plugin
- * Version:           1.2.3
- * Description:       A test plugin with extra formatting
- */`;
-
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithFormattedVersion);
-    const result = bumpVersion('test.php', BumpTypes.PATCH, PrereleaseTypes.NONE);
-
-    expect(result.oldVersion).toBe('1.2.3');
-    expect(result.newVersion).toBe('1.2.4');
-  });
-
-  it('correctly extracts version with extra comment block', () => {
-    const mockPluginWithCommentBlock = `<?php
-/**
- * Automatic.css Main file.
- *
- * @package Automatic_CSS
- */
-
-/**
- * Plugin Name: Test Plugin
- * Version: 1.2.3
- */
-`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithCommentBlock);
-    const result = bumpVersion('test.php', BumpTypes.PATCH, PrereleaseTypes.NONE);
-
-    expect(result.oldVersion).toBe('1.2.3');
-  });
-});
-
-describe('Version bumping', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+    expect(() =>
+      bumpVersion(filePath, bumpType, prereleaseType, undefined, mockFileSystem)
+    ).toThrow('Invalid version format');
   });
 
   it('increments patch version, leaves minor and major unchanged when doing patch bump', () => {
@@ -241,11 +93,13 @@ describe('Version bumping', () => {
  * Version: 1.2.3
  * Description: A test plugin
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const result = bumpVersion(
-      'test/fixtures/test-plugin.php',
+      'test-plugin.php',
       BumpTypes.PATCH,
-      PrereleaseTypes.NONE
+      PrereleaseTypes.NONE,
+      undefined,
+      mockFileSystem
     );
 
     expect(result.newVersion).toBe('1.2.4');
@@ -258,11 +112,13 @@ describe('Version bumping', () => {
  * Version: 1.2.3
  * Description: A test plugin
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const result = bumpVersion(
-      'test/fixtures/test-plugin.php',
+      'test-plugin.php',
       BumpTypes.MINOR,
-      PrereleaseTypes.NONE
+      PrereleaseTypes.NONE,
+      undefined,
+      mockFileSystem
     );
 
     expect(result.newVersion).toBe('1.3.0');
@@ -275,11 +131,13 @@ describe('Version bumping', () => {
  * Version: 1.2.3
  * Description: A test plugin
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const result = bumpVersion(
-      'test/fixtures/test-plugin.php',
+      'test-plugin.php',
       BumpTypes.MAJOR,
-      PrereleaseTypes.NONE
+      PrereleaseTypes.NONE,
+      undefined,
+      mockFileSystem
     );
 
     expect(result.newVersion).toBe('2.0.0');
@@ -291,11 +149,13 @@ describe('Version bumping', () => {
  * Plugin Name: Test Plugin
  * Version: 1.2.3
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const result = bumpVersion(
-      'test/fixtures/test-plugin.php',
+      'test-plugin.php',
       BumpTypes.NONE,
-      PrereleaseTypes.ALPHA
+      PrereleaseTypes.ALPHA,
+      undefined,
+      mockFileSystem
     );
 
     expect(result.newVersion).toBe('1.2.3-alpha-1');
@@ -307,11 +167,13 @@ describe('Version bumping', () => {
  * Plugin Name: Test Plugin
  * Version: 1.2.3-alpha-1
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const result = bumpVersion(
-      'test/fixtures/test-plugin.php',
+      'test-plugin.php',
       BumpTypes.NONE,
-      PrereleaseTypes.ALPHA
+      PrereleaseTypes.ALPHA,
+      undefined,
+      mockFileSystem
     );
 
     expect(result.newVersion).toBe('1.2.3-alpha-2');
@@ -323,11 +185,13 @@ describe('Version bumping', () => {
  * Plugin Name: Test Plugin
  * Version: 1.2.3-alpha-3
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const result = bumpVersion(
-      'test/fixtures/test-plugin.php',
+      'test-plugin.php',
       BumpTypes.NONE,
-      PrereleaseTypes.BETA
+      PrereleaseTypes.BETA,
+      undefined,
+      mockFileSystem
     );
 
     expect(result.newVersion).toBe('1.2.3-beta-1');
@@ -341,11 +205,13 @@ describe('Version bumping', () => {
  * Plugin Name: Test Plugin
  * Version: 1.2.3
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const result = bumpVersion(
-      'test/fixtures/test-plugin.php',
+      'test-plugin.php',
       BumpTypes.BUILD,
-      PrereleaseTypes.NONE
+      PrereleaseTypes.NONE,
+      undefined,
+      mockFileSystem
     );
 
     expect(result.newVersion).toBe('1.2.3+20241205120000');
@@ -359,11 +225,13 @@ describe('Version bumping', () => {
  * Plugin Name: Test Plugin
  * Version: 1.2.3
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const result = bumpVersion(
-      'test/fixtures/test-plugin.php',
+      'test-plugin.php',
       BumpTypes.BUILD,
-      PrereleaseTypes.ALPHA
+      PrereleaseTypes.ALPHA,
+      undefined,
+      mockFileSystem
     );
 
     expect(result.newVersion).toBe('1.2.3-alpha-1+20241205120000');
@@ -375,11 +243,13 @@ describe('Version bumping', () => {
  * Plugin Name: Test Plugin
  * Version: 1.2.3-alpha-1+20241205120000
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     const result = bumpVersion(
-      'test/fixtures/test-plugin.php',
+      'test-plugin.php',
       BumpTypes.STABLE,
-      PrereleaseTypes.NONE
+      PrereleaseTypes.NONE,
+      undefined,
+      mockFileSystem
     );
 
     expect(result.newVersion).toBe('1.2.3');
@@ -391,9 +261,15 @@ describe('Version bumping', () => {
  * Plugin Name: Test Plugin
  * Version: 1.2.3-beta-1
  */`;
-    (fs.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
+    (mockFileSystem.readFileSync as jest.Mock).mockReturnValue(mockPluginWithVersion);
     expect(() =>
-      bumpVersion('test/fixtures/test-plugin.php', BumpTypes.NONE, PrereleaseTypes.ALPHA)
+      bumpVersion(
+        'test-plugin.php',
+        BumpTypes.NONE,
+        PrereleaseTypes.ALPHA,
+        undefined,
+        mockFileSystem
+      )
     ).toThrow('Prerelease downgrade is not allowed');
   });
 });

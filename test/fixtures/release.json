@@ -1,0 +1,14 @@
+{
+  "name": "Test Plugin",
+  "slug": "test-plugin",
+  "author": "Test Author",
+  "author_profile": "https://example.com",
+  "version": "1.2.3",
+  "requires": "5.9",
+  "requires_php": "8.0",
+  "sections": {
+    "description": "",
+    "changelog": "",
+    "frequently asked questions": ""
+  }
+}

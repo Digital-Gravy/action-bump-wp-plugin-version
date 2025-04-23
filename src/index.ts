@@ -10,7 +10,11 @@ function run(): void {
     const prereleaseType = core.getInput('prerelease_type');
     const pluginDir = core.getInput('plugin_dir');
     const pluginMainFile = core.getInput('plugin_main_file');
-    const filePath = `${pluginDir}/${pluginMainFile}`;
+    const pluginFilePath = `${pluginDir}/${pluginMainFile}`;
+    const sureCartReleaseFile = core.getInput('surecart_release_file');
+    const sureCartReleaseFilePath = sureCartReleaseFile
+      ? `${pluginDir}/${sureCartReleaseFile}`
+      : undefined;
 
     // Debug input values
     core.debug('Inputs received:');
@@ -18,12 +22,15 @@ function run(): void {
     core.debug(`  prerelease_type: ${prereleaseType}`);
     core.debug(`  plugin_dir: ${pluginDir}`);
     core.debug(`  plugin_main_file: ${pluginMainFile}`);
-    core.debug(`  file_path: ${filePath}`);
+    core.debug(`  plugin_file_path: ${pluginFilePath}`);
+    core.debug(`  surecart_release_file: ${sureCartReleaseFile}`);
+    core.debug(`  surecart_release_file_path: ${sureCartReleaseFilePath}`);
 
     const { oldVersion, newVersion, isVersionBumped }: VersionResult = bumpVersion(
-      filePath,
+      pluginFilePath,
       bumpType as BumpType,
-      prereleaseType as PrereleaseType
+      prereleaseType as PrereleaseType,
+      sureCartReleaseFilePath
     );
 
     // Output results with visual separation
@@ -33,7 +40,10 @@ function run(): void {
     core.info(`New Version: ${newVersion}`);
     core.info(`Version Bumped: ${isVersionBumped}`);
     if (isVersionBumped) {
-      core.info(`File Updated: ${filePath}`);
+      core.info(`File Updated: ${pluginFilePath}`);
+      if (sureCartReleaseFilePath) {
+        core.info(`SureCart Release File Updated: ${sureCartReleaseFilePath}`);
+      }
     }
 
     core.setOutput('old_version', oldVersion);
