@@ -38,6 +38,10 @@ Examples:
 
     # Name of the main plugin file (required)
     plugin_main_file: 'my-plugin.php'
+
+    # Path to SureCart release file relative to plugin directory (optional)
+    # If provided, the version will also be updated in this file
+    surecart_release_file: 'release.json'
 ```
 
 ## Outputs
@@ -59,6 +63,7 @@ Example of using outputs:
     prerelease_type: 'none'
     plugin_dir: '.'
     plugin_main_file: 'my-plugin.php'
+    surecart_release_file: 'release.json'
 
 - name: Check if version changed
   if: steps.bump.outputs.is_version_bumped == 'true'
@@ -113,6 +118,7 @@ The action will fail with appropriate error messages for:
 - Invalid version format in plugin file
 - Attempting to downgrade prerelease type
 - Invalid input parameters
+- Missing SureCart release file (when specified)
 
 ## Contributing
 
