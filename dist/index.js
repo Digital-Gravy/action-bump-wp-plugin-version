@@ -53,15 +53,21 @@ function run() {
         const prereleaseType = core.getInput('prerelease_type');
         const pluginDir = core.getInput('plugin_dir');
         const pluginMainFile = core.getInput('plugin_main_file');
-        const filePath = `${pluginDir}/${pluginMainFile}`;
+        const pluginFilePath = `${pluginDir}/${pluginMainFile}`;
+        const sureCartReleaseFile = core.getInput('surecart_release_file');
+        const sureCartReleaseFilePath = sureCartReleaseFile
+            ? `${pluginDir}/${sureCartReleaseFile}`
+            : undefined;
         // Debug input values
         core.debug('Inputs received:');
         core.debug(`  bump_type: ${bumpType}`);
         core.debug(`  prerelease_type: ${prereleaseType}`);
         core.debug(`  plugin_dir: ${pluginDir}`);
         core.debug(`  plugin_main_file: ${pluginMainFile}`);
-        core.debug(`  file_path: ${filePath}`);
-        const { oldVersion, newVersion, isVersionBumped } = (0, versionBumper_1.bumpVersion)(filePath, bumpType, prereleaseType);
+        core.debug(`  plugin_file_path: ${pluginFilePath}`);
+        core.debug(`  surecart_release_file: ${sureCartReleaseFile}`);
+        core.debug(`  surecart_release_file_path: ${sureCartReleaseFilePath}`);
+        const { oldVersion, newVersion, isVersionBumped } = (0, versionBumper_1.bumpVersion)(pluginFilePath, bumpType, prereleaseType, sureCartReleaseFilePath);
         // Output results with visual separation
         core.info('WordPress Plugin Version Bumper Results');
         core.info('═══════════════════════════════════════');
@@ -69,7 +75,10 @@ function run() {
         core.info(`New Version: ${newVersion}`);
         core.info(`Version Bumped: ${isVersionBumped}`);
         if (isVersionBumped) {
-            core.info(`File Updated: ${filePath}`);
+            core.info(`File Updated: ${pluginFilePath}`);
+            if (sureCartReleaseFilePath) {
+                core.info(`SureCart Release File Updated: ${sureCartReleaseFilePath}`);
+            }
         }
         core.setOutput('old_version', oldVersion);
         core.setOutput('new_version', newVersion);
@@ -106,9 +115,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PrereleaseTypes = exports.BumpTypes = void 0;
+exports.PrereleaseTypes = exports.BumpTypes = exports.defaultFileSystem = void 0;
 exports.bumpVersion = bumpVersion;
 const fs_1 = __importDefault(__nccwpck_require__(9896));
+/**
+ * Default file system implementation using Node's fs module
+ */
+exports.defaultFileSystem = {
+    readFileSync: (path) => fs_1.default.readFileSync(path, 'utf8'),
+    writeFileSync: (path, data) => fs_1.default.writeFileSync(path, data, 'utf8'),
+    existsSync: (path) => fs_1.default.existsSync(path),
+};
 /**
  * Valid bump types as a const object
  */
@@ -228,14 +245,42 @@ function getPrereleaseOrder(type) {
     return order[type] || -1;
 }
 /**
+ * Updates the version in a SureCart release file
+ *
+ * @param filePath - Path to the SureCart release file
+ * @param newVersion - New version to set
+ * @param fileSystem - File system implementation
+ * @throws Error if file does not exist or is invalid JSON
+ */
+function updateSureCartReleaseFile(filePath, newVersion, fileSystem = exports.defaultFileSystem) {
+    if (!fileSystem.existsSync(filePath)) {
+        throw new Error(`SureCart release file does not exist: ${filePath}`);
+    }
+    const fileContents = fileSystem.readFileSync(filePath);
+    let releaseData;
+    try {
+        releaseData = JSON.parse(fileContents);
+    }
+    catch (error) {
+        throw new Error(`Invalid JSON in SureCart release file: ${filePath}`);
+    }
+    if (typeof releaseData !== 'object' || releaseData === null) {
+        throw new Error(`Invalid SureCart release file format: ${filePath}`);
+    }
+    releaseData.version = newVersion;
+    fileSystem.writeFileSync(filePath, JSON.stringify(releaseData, null, 2) + '\n');
+}
+/**
  * Bumps the version number in a WordPress plugin file
  *
- * @param filePath - Path to the WordPress plugin file
+ * @param pluginFilePath - Path to the WordPress plugin file
  * @param bumpType - Type of version bump to perform
  * @param prereleaseType - Type of prerelease to set/bump
+ * @param sureCartReleaseFilePath - Optional path to SureCart release file to update
+ * @param fileSystem - File system implementation
  * @returns Object containing old version, new version, and whether version was bumped
  */
-function bumpVersion(filePath, bumpType, prereleaseType) {
+function bumpVersion(pluginFilePath, bumpType, prereleaseType, sureCartReleaseFilePath, fileSystem = exports.defaultFileSystem) {
     // Validate inputs
     if (!Object.values(exports.BumpTypes).includes(bumpType)) {
         throw new Error(`Invalid bump type: ${bumpType}`);
@@ -244,10 +289,10 @@ function bumpVersion(filePath, bumpType, prereleaseType) {
         throw new Error(`Invalid prerelease type: ${prereleaseType}`);
     }
     // Read file
-    if (!fs_1.default.existsSync(filePath)) {
-        throw new Error(`File does not exist: ${filePath}`);
+    if (!fileSystem.existsSync(pluginFilePath)) {
+        throw new Error(`File does not exist: ${pluginFilePath}`);
     }
-    let fileContents = fs_1.default.readFileSync(filePath, 'utf8');
+    let fileContents = fileSystem.readFileSync(pluginFilePath);
     // Extract current version
     const versionObj = extractVersion(fileContents);
     const currentVersion = formatVersion(versionObj);
@@ -299,7 +344,14 @@ function bumpVersion(filePath, bumpType, prereleaseType) {
             fileContents.slice(0, index) +
                 match.replace(currentVersion, newVersion) +
                 fileContents.slice(index + match.length);
-        fs_1.default.writeFileSync(filePath, fileContents, 'utf8');
+        fileSystem.writeFileSync(pluginFilePath, fileContents);
+        // Update SureCart release file if provided
+        if (sureCartReleaseFilePath) {
+            if (!fileSystem.existsSync(sureCartReleaseFilePath)) {
+                throw new Error(`SureCart release file does not exist: ${sureCartReleaseFilePath}`);
+            }
+            updateSureCartReleaseFile(sureCartReleaseFilePath, newVersion, fileSystem);
+        }
     }
     return {
         oldVersion: currentVersion,
