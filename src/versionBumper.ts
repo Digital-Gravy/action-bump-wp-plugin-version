@@ -202,7 +202,7 @@ function updateSureCartReleaseFile(
   let releaseData;
   try {
     releaseData = JSON.parse(fileContents);
-  } catch (error) {
+  } catch {
     throw new Error(`Invalid JSON in SureCart release file: ${filePath}`);
   }
 

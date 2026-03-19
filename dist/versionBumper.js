@@ -149,7 +149,7 @@ function updateSureCartReleaseFile(filePath, newVersion, fileSystem = exports.de
     try {
         releaseData = JSON.parse(fileContents);
     }
-    catch (error) {
+    catch {
         throw new Error(`Invalid JSON in SureCart release file: ${filePath}`);
     }
     if (typeof releaseData !== 'object' || releaseData === null) {

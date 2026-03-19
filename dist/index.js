@@ -21036,7 +21036,7 @@ var require_versionBumper = __commonJS({
       let releaseData;
       try {
         releaseData = JSON.parse(fileContents);
-      } catch (error2) {
+      } catch {
         throw new Error(`Invalid JSON in SureCart release file: ${filePath}`);
       }
       if (typeof releaseData !== "object" || releaseData === null) {
